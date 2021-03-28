@@ -8,17 +8,17 @@ import autocomplete
 from direction import Direction
 from keyboard_type import KeyboardType
 
+
 class Eye():
     def __init__(self):
 
-        
         self.init_detection()
         self.init_boards()
-        self.gaze_direction=None
-        self.keyboard_contents=None
-        self.predicted_words=[]
-        self.text=""
-        self.prev_word=None
+        self.gaze_direction = None
+        self.keyboard_contents = None
+        self.predicted_words = []
+        self.text = ""
+        self.prev_word = None
         self.algo()
 
     def init_detection(self):
@@ -36,12 +36,12 @@ class Eye():
         self.keyboard.fill(255)
         self.whiteboard = np.zeros((300, 1000), np.uint8)
         self.whiteboard.fill(255)
-        self.autocomplete_window=np.zeros((1000,400),np.uint8)
+        self.autocomplete_window = np.zeros((1000, 400), np.uint8)
         self.autocomplete_window.fill(255)
-        self.gaze_direction=None
-        self.keyboard_contents=None
+        self.gaze_direction = None
+        self.keyboard_contents = None
 
-    def get_eye_dimensions(self,extremes,top,bottom,landmarks):
+    def get_eye_dimensions(self, extremes, top, bottom, landmarks):
 
         left_point = Point(landmarks.part(extremes[0]).x,
                            landmarks.part(extremes[0]).y)
@@ -50,7 +50,7 @@ class Eye():
 
         center_top = self.get_mid_point(landmarks.part(top[0]), landmarks.part(top[1]))
         center_bottom = self.get_mid_point(landmarks.part(bottom[0]),
-                                      landmarks.part(bottom[1]))
+                                           landmarks.part(bottom[1]))
 
         cv2.line(self.frame, (left_point.x, left_point.y), (right_point.x, right_point.y), (0, 0, 255), 2)
         cv2.line(self.frame, (center_top.x, center_top.y), (center_bottom.x, center_bottom.y), (0, 0, 255), 2)
@@ -58,27 +58,31 @@ class Eye():
         eye_height = self.get_distance(center_bottom, center_top)
         eye_length = self.get_distance(left_point, right_point)
 
-        return eye_length,eye_height
-    def is_blinking(self,landmarks):
+        return eye_length, eye_height
+
+    def is_blinking(self, landmarks):
         return self.is_left_wink(landmarks) and self.is_right_wink(landmarks)
 
-    def is_left_wink(self,landmarks):
-        left_len,left_ht=self.get_eye_dimensions(constants.LEFT_EYE_HORIZONTAL_EXTREMES,constants.LEFT_EYE_TOP,constants.LEFT_EYE_BOTTOM,landmarks)
-        return (left_len/left_ht>4)
+    def is_left_wink(self, landmarks):
+        left_len, left_ht = self.get_eye_dimensions(constants.LEFT_EYE_HORIZONTAL_EXTREMES, constants.LEFT_EYE_TOP,
+                                                    constants.LEFT_EYE_BOTTOM, landmarks)
+        return (left_len / left_ht > 4)
 
-    def is_right_wink(self,landmarks):
-        right_len,right_ht=self.get_eye_dimensions(constants.RIGHT_EYE_HORIZONTAL_EXTREMES,constants.RIGHT_EYE_TOP,constants.RIGHT_EYE_BOTTOM,landmarks)
-        return (right_len/right_ht>4)
+    def is_right_wink(self, landmarks):
+        right_len, right_ht = self.get_eye_dimensions(constants.RIGHT_EYE_HORIZONTAL_EXTREMES, constants.RIGHT_EYE_TOP,
+                                                      constants.RIGHT_EYE_BOTTOM, landmarks)
+        return (right_len / right_ht > 4)
 
-    def get_mid_point(self,p1,p2):
-        return Point(int((p1.x+p2.x)/2),int((p1.y+p2.y)/2))
-    def get_distance(self,p1,p2):
-        return math.sqrt(pow(p1.x-p2.x,2)+pow(p1.y-p2.y,2))
+    def get_mid_point(self, p1, p2):
+        return Point(int((p1.x + p2.x) / 2), int((p1.y + p2.y) / 2))
 
-    def extract_eye_for_wink(self,eye_region):
+    def get_distance(self, p1, p2):
+        return math.sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2))
+
+    def extract_eye_for_wink(self, eye_region):
         height, width, _ = self.frame.shape
         mask = np.zeros((height, width), np.uint8)
-        cv2.polylines(mask, [eye_region], True, (0,0,255), 2)
+        cv2.polylines(mask, [eye_region], True, (0, 0, 255), 2)
         cv2.fillPoly(mask, [eye_region], 255)
         left_eye = cv2.bitwise_and(self.gray_img, self.gray_img, mask=mask)
 
@@ -99,12 +103,12 @@ class Eye():
         white_count = max(1, cv2.countNonZero(threshold_eye))
 
         # wb_ratio=left_white / right_white
-        return  white_count,threshold_eye
+        return white_count, threshold_eye
 
-    def extract_eye(self,eye_region):
+    def extract_eye(self, eye_region):
         height, width, _ = self.frame.shape
         mask = np.zeros((height, width), np.uint8)
-        cv2.polylines(mask, [eye_region], True, (0,0,255), 2)
+        cv2.polylines(mask, [eye_region], True, (0, 0, 255), 2)
         cv2.fillPoly(mask, [eye_region], 255)
         left_eye = cv2.bitwise_and(self.gray_img, self.gray_img, mask=mask)
 
@@ -125,10 +129,10 @@ class Eye():
         left_white = max(1, cv2.countNonZero(left_half))
         right_white = max(1, cv2.countNonZero(right_half))
 
-        wb_ratio=left_white / right_white
-        return  wb_ratio,threshold_eye
+        wb_ratio = left_white / right_white
+        return wb_ratio, threshold_eye
 
-    def get_winked_eye_info(self,landmarks):
+    def get_winked_eye_info(self, landmarks):
         left_eye_region = np.array([(landmarks.part(36).x, landmarks.part(36).y),
                                     (landmarks.part(37).x, landmarks.part(37).y),
                                     (landmarks.part(38).x, landmarks.part(38).y),
@@ -142,26 +146,24 @@ class Eye():
                                      (landmarks.part(46).x, landmarks.part(46).y),
                                      (landmarks.part(47).x, landmarks.part(47).y)], np.int32)
 
-        left_white_count,left_thresh_eye= self.extract_eye_for_wink(left_eye_region)
-        right_white_count,right_thresh_eye= self.extract_eye_for_wink(right_eye_region)
-
+        left_white_count, left_thresh_eye = self.extract_eye_for_wink(left_eye_region)
+        right_white_count, right_thresh_eye = self.extract_eye_for_wink(right_eye_region)
 
         # cv2.imshow(Direction.LEFT, left_thresh_eye)
         # cv2.imshow(Direction.RIGHT, right_thresh_eye)
 
         # print("\t\t\t\t\t\t\t\t\t\t",left_white_count,right_white_count,right_white_count/left_white_count)
-        if(left_white_count<10 and right_white_count>10):
-            cv2.putText(self.frame, 'Right Wink', (20, 180), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0), thickness=3,
-                        fontScale=1)
+        if (left_white_count < 10 and right_white_count > 10):
+            # cv2.putText(self.frame, 'Right Wink', (20, 180), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0), thickness=3,
+            #             fontScale=1)
             return Direction.RIGHT
-        elif(left_white_count>10 and right_white_count<10):
+        elif (left_white_count > 10 and right_white_count < 10):
 
-            cv2.putText(self.frame, 'Left Blink', (20, 180), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 255), thickness=3,
-                    fontScale=1)
+            # cv2.putText(self.frame, 'Left Blink', (20, 180), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 255), thickness=3,
+            #         fontScale=1)
             return Direction.LEFT
 
         return None
-
 
     def get_gaze_direction(self, landmarks):
         left_eye_region = np.array([(landmarks.part(36).x, landmarks.part(36).y),
@@ -177,17 +179,14 @@ class Eye():
                                      (landmarks.part(46).x, landmarks.part(46).y),
                                      (landmarks.part(47).x, landmarks.part(47).y)], np.int32)
 
-        left_ratio,_= self.extract_eye(left_eye_region)
-        right_ratio,_= self.extract_eye(right_eye_region)
+        left_ratio, _ = self.extract_eye(left_eye_region)
+        right_ratio, _ = self.extract_eye(right_eye_region)
 
-
-
-
-        if(left_ratio<1 and right_ratio<1):
+        if (left_ratio < 1 and right_ratio < 1):
             cv2.putText(self.frame, "Right", (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 255), thickness=3,
                         fontScale=1)
             return Direction.RIGHT
-        elif(left_ratio>1.5 and right_ratio>1.5):
+        elif (left_ratio > 1.5 and right_ratio > 1.5):
             cv2.putText(self.frame, "Left", (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0), thickness=3,
                         fontScale=1)
             return Direction.LEFT
@@ -197,12 +196,11 @@ class Eye():
                         fontScale=1)
             return Direction.CENTRE
 
-
-    def show_keyboard_contents(self,text, x, y,is_highlighted):
+    def show_keyboard_contents(self, text, x, y, is_highlighted):
         width = height = 200
         th = 3
 
-        if(is_highlighted):
+        if (is_highlighted):
             cv2.rectangle(self.keyboard, (x + th, y + th), (x + width - th, y + height - th), (255, 0, 0), th)
         else:
             cv2.rectangle(self.keyboard, (x + th, y + th), (x + width - th, y + height - th), (0, 0, 0), th)
@@ -210,25 +208,25 @@ class Eye():
         font_letter = cv2.FONT_HERSHEY_PLAIN
         font_scale = 10
         font_th = 4
-        if(len(text)!=1):
-            font_scale=4
-            font_th=2
+        if (len(text) != 1):
+            font_scale = 4
+            font_th = 2
         text_size = cv2.getTextSize(text, font_letter, font_scale, font_th)[0]
         width_text, height_text = text_size[0], text_size[1]
         text_x = int((width - width_text) / 2) + x
         text_y = int((height + height_text) / 2) + y
         cv2.putText(self.keyboard, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
 
-    def show_autocomplete_contents(self,text, x, y,is_highlighted):
+    def show_autocomplete_contents(self, text, x, y, is_highlighted):
         height = 50
-        width= 400
+        width = 400
         th = 3
 
-        if(is_highlighted):
+        if (is_highlighted):
             cv2.rectangle(self.autocomplete_window, (x + th, y + th), (x + width - th, y + height - th), (0, 0, 0), th)
 
         font_letter = cv2.FONT_HERSHEY_PLAIN
-        font_scale = 3
+        font_scale = 4
         font_th = 2
 
         text_size = cv2.getTextSize(text, font_letter, font_scale, font_th)[0]
@@ -237,20 +235,17 @@ class Eye():
         text_y = int((height + height_text) / 2) + y
         cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
 
-    def draw_keyboard_window(self,highlight_index):
-        # self.autocomplete_window.fill(255)
-        index=0
+    def draw_keyboard_window(self, highlight_index):
+        self.autocomplete_window.fill(255)
+        index = 0
         for i in range(0, 600, 200):
             for j in range(0, 1000, 200):
                 self.show_keyboard_contents(self.keyboard_contents[index], j, i, highlight_index == index)
                 index += 1
 
-    def draw_autocomplete_window(self,highlight_index):
-        self.autocomplete_window.fill(255)
-
-        index=0
-        if(len(self.predicted_words)>0):
-
+    def draw_autocomplete_window(self, highlight_index):
+        index = 0
+        if (len(self.text) > 0):
             for i in range(0, 1000, 100):
                 self.show_autocomplete_contents(self.predicted_words[index], 0, i, highlight_index == index)
                 index += 1
@@ -259,33 +254,37 @@ class Eye():
         rows, cols, _ = self.keyboard.shape
         th_lines = 4
         cv2.line(self.keyboard, (int(cols / 2) - int(th_lines / 2), 0), (int(cols / 2) - int(th_lines / 2), rows),
-                 (0,0,0), th_lines)
-        cv2.putText(self.keyboard, "Numeric", (80, 300), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
-        cv2.putText(self.keyboard, "Letters", (80 + int(cols / 2), 300), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
+                 (0, 0, 0), th_lines)
+        cv2.putText(self.keyboard, "Numeric", (80, 300), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0), thickness=3,
+                    fontScale=3)
+        cv2.putText(self.keyboard, "Letters", (80 + int(cols / 2), 300), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0),
+                    thickness=3,
+                    fontScale=3)
+
     def show_options(self):
         rows, cols, _ = self.keyboard.shape
         th_lines = 4
         cv2.line(self.keyboard, (int(cols / 2) - int(th_lines / 2), 0), (int(cols / 2) - int(th_lines / 2), rows),
-                 (0,0,0), th_lines)
-        cv2.putText(self.keyboard, "ENIHR", (80, 200), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
-        cv2.putText(self.keyboard, "UCW", (120, 300), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
-        cv2.putText(self.keyboard, "YBVJX", (80, 400), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
+                 (0, 0, 0), th_lines)
+        cv2.putText(self.keyboard, "ENIHR", (80, 200), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0), thickness=3,
+                    fontScale=3)
+        cv2.putText(self.keyboard, "UCW", (120, 300), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0), thickness=3,
+                    fontScale=3)
+        cv2.putText(self.keyboard, "YBVJX", (80, 400), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0), thickness=3,
+                    fontScale=3)
 
-        cv2.putText(self.keyboard, "TAOSD", (80 + int(cols / 2), 200), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
-        cv2.putText(self.keyboard, "LMF", (140 + int(cols / 2), 300), cv2.FONT_HERSHEY_COMPLEX,color=(0, 0, 0),thickness=3,
-                                        fontScale=3)
+        cv2.putText(self.keyboard, "TAOSD", (80 + int(cols / 2), 200), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0),
+                    thickness=3,
+                    fontScale=3)
+        cv2.putText(self.keyboard, "LMF", (140 + int(cols / 2), 300), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0),
+                    thickness=3,
+                    fontScale=3)
 
         cv2.putText(self.keyboard, "GPKQZ", (80 + int(cols / 2), 400), cv2.FONT_HERSHEY_COMPLEX, color=(0, 0, 0),
                     thickness=3,
                     fontScale=3)
 
-    def update_cursor(self,frame_counter,highlight_index,cursor_direction):
+    def update_cursor(self, frame_counter, highlight_index, cursor_direction):
         if (frame_counter % constants.FPS == 0):
             if (cursor_direction == Direction.LEFT_TO_RIGHT):
                 highlight_index += 1
@@ -294,7 +293,7 @@ class Eye():
             highlight_index = highlight_index % len(self.keyboard_contents)
             frame_counter = 0
 
-        return frame_counter,highlight_index
+        return frame_counter, highlight_index
 
     def generate_autocomplete_words(self):
         words = self.text.split(' ')
@@ -306,37 +305,75 @@ class Eye():
             self.predicted_words = autocomplete.predict(self.prev_word.lower(), cur_word.lower())
         else:
             cur_word = words[-1]
+            print('cur word:', cur_word)
             self.predicted_words = autocomplete.predict(cur_word.lower(), '')
         self.predicted_words = [i.upper() for i, j in self.predicted_words]
 
+        print(self.predicted_words)
+
+    def check_wink(self, is_in_autocomplete_window, landmarks, prev_wink, wink_counter):
+
+        eye_which_winked = self.get_winked_eye_info(landmarks)
+
+        if (eye_which_winked != None):
+            is_winking = True
+            if (prev_wink == None):
+                prev_wink = eye_which_winked
+
+            if (eye_which_winked == Direction.RIGHT):
+                if (prev_wink == eye_which_winked):
+                    wink_counter += 1
+                else:
+                    wink_counter = 0
+
+                if (wink_counter % constants.FPS == 0):
+                    print('DONEEEEEEEEEEE')
+                    cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
+                                thickness=3,
+                                fontScale=1)
+                    wink_counter = 0
+
+                    if (is_in_autocomplete_window):
+                        is_in_autocomplete_window = False
+                        wink_counter = 0
+                        self.draw_autocomplete_window(-1)
+
+
+                    elif (len(self.text) > 0):
+                        is_in_autocomplete_window = True
+            prev_wink = eye_which_winked
+
+        else:
+            is_winking = False
+
+        return is_in_autocomplete_window, prev_wink, wink_counter, is_winking
 
     def algo(self):
-        highlight_index=0
+        highlight_index = 0
 
-        blinking_counter=0
-        gaze_counter=0
-        wink_counter=0
-        frame_counter=0
+        blinking_counter = 0
+        gaze_counter = 0
+        wink_counter = 0
+        frame_counter = 0
 
         autocomplete_counter = 0
         autocomplete_cursor_index = 0
 
         cursor_direction = Direction.LEFT_TO_RIGHT
 
-        is_keyboard_selected=False
-        is_in_autocomplete_window=False
-        is_winking=True
+        is_keyboard_selected = False
+        is_in_autocomplete_window = False
 
-        prev_gaze=None
-        prev_wink=None
+        prev_gaze = None
+        prev_wink = None
 
         while True:
             self.get_updated_face()
-            #Update keyboard
+            # Update keyboard
             self.keyboard.fill(255)
             self.show_options()
 
-            if(len(self.faces)<1):
+            if (len(self.faces) < 1):
                 continue
             face = self.faces[0]
 
@@ -344,11 +381,11 @@ class Eye():
             self.gaze_direction = self.get_gaze_direction(landmarks)
             self.draw_autocomplete_window(-1)
 
-
-            if(is_in_autocomplete_window):
+            if (is_in_autocomplete_window and len(self.text) > 0):
                 self.keyboard.fill(255)
-                autocomplete_counter+=1
-                if(autocomplete_counter%constants.FPS==0):
+
+                autocomplete_counter += 1
+                if (autocomplete_counter % constants.FPS == 0):
                     autocomplete_cursor_index += 1
                     autocomplete_cursor_index = autocomplete_cursor_index % len(self.predicted_words)
                     autocomplete_counter = 0
@@ -358,80 +395,79 @@ class Eye():
                 self.draw_keyboard_window(highlight_index)
 
 
-            elif(is_keyboard_selected):
+            elif (is_keyboard_selected):
 
-                frame_counter+=1
-                frame_counter,highlight_index=self.update_cursor(frame_counter,highlight_index,cursor_direction)
+                frame_counter += 1
+                frame_counter, highlight_index = self.update_cursor(frame_counter, highlight_index, cursor_direction)
                 self.keyboard.fill(255)
                 self.draw_keyboard_window(highlight_index)
 
-                if(prev_gaze==None):
-                    prev_gaze=self.gaze_direction
+                if (prev_gaze == None):
+                    prev_gaze = self.gaze_direction
 
                 if (self.gaze_direction == Direction.LEFT):
-                    if(prev_gaze==self.gaze_direction):
-                        gaze_counter+=1
+                    if (prev_gaze == self.gaze_direction):
+                        gaze_counter += 1
                     else:
-                        gaze_counter=0
+                        gaze_counter = 0
 
-                    if(gaze_counter>constants.FPS):
+                    if (gaze_counter > constants.FPS):
                         cv2.putText(self.frame, "Left", (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
                                     thickness=3,
                                     fontScale=1)
-                        cursor_direction=Direction.RIGHT_TO_LEFT
+                        cursor_direction = Direction.RIGHT_TO_LEFT
                         blinking_counter = 0
-                        gaze_counter=0
+                        gaze_counter = 0
 
                 elif (self.gaze_direction == Direction.RIGHT):
-                    if(prev_gaze==self.gaze_direction):
-                        gaze_counter+=1
+                    if (prev_gaze == self.gaze_direction):
+                        gaze_counter += 1
                     else:
-                        gaze_counter=0
+                        gaze_counter = 0
                     # gaze_counter += 1
                     if (gaze_counter > constants.FPS):
                         cv2.putText(self.frame, "Right", (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
                                     thickness=3,
                                     fontScale=1)
-                        cursor_direction=Direction.LEFT_TO_RIGHT
+                        cursor_direction = Direction.LEFT_TO_RIGHT
                         blinking_counter = 0
-                        gaze_counter=0
+                        gaze_counter = 0
 
-                prev_gaze=self.gaze_direction
-
-
+                prev_gaze = self.gaze_direction
 
                 if (self.is_blinking(landmarks)):
 
-                    if(blinking_counter==constants.FPS):
+                    if (blinking_counter == constants.FPS):
                         cv2.putText(self.frame, 'Selected', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
                                     thickness=3,
                                     fontScale=1)
-                        if(self.keyboard_contents[highlight_index]=='123'):
-                            self.gaze_direction=KeyboardType.NUMERIC
-                            self.keyboard_contents=constants.NUMBERS
+                        if (self.keyboard_contents[highlight_index] == '123'):
+                            self.gaze_direction = KeyboardType.NUMERIC
+                            self.keyboard_contents = constants.NUMBERS
                             frame_counter = 1
-                        elif(self.keyboard_contents[highlight_index]==Direction.RIGHT):
+                        elif (self.keyboard_contents[highlight_index] == Direction.RIGHT):
                             self.gaze_direction = Direction.RIGHT
                             self.keyboard_contents = constants.RIGHT_LETTERS
                             frame_counter = 1
-                        elif(self.keyboard_contents[highlight_index]==Direction.LEFT):
+                        elif (self.keyboard_contents[highlight_index] == Direction.LEFT):
                             self.gaze_direction = Direction.LEFT
                             self.keyboard_contents = constants.LEFT_LETTERS
                             frame_counter = 1
                         else:
-                            self.text+=self.keyboard_contents[highlight_index]
+                            self.text += self.keyboard_contents[highlight_index]
                             frame_counter = 1
                         # self.update_autocomplete_window()
                         self.generate_autocomplete_words()
                         highlight_index = 0
-                        cursor_direction=Direction.LEFT_TO_RIGHT
+                        cursor_direction = Direction.LEFT_TO_RIGHT
                     else:
-                        cv2.putText(self.frame, 'Eye closed', (20, 250), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0), thickness=3,
+                        cv2.putText(self.frame, 'Eye closed', (20, 250), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
+                                    thickness=3,
                                     fontScale=1)
-                    blinking_counter+=1
-                    frame_counter-=1
+                    blinking_counter += 1
+                    frame_counter -= 1
                 else:
-                    blinking_counter=0
+                    blinking_counter = 0
 
                 self.get_eye_dimensions(constants.LEFT_EYE_HORIZONTAL_EXTREMES, constants.LEFT_EYE_TOP,
                                         constants.LEFT_EYE_BOTTOM, landmarks)
@@ -439,87 +475,49 @@ class Eye():
                                         constants.RIGHT_EYE_BOTTOM, landmarks)
                 cv2.putText(self.whiteboard, self.text, (10, 100), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
 
-                eye_which_winked=self.get_winked_eye_info(landmarks)
 
-                if(eye_which_winked != None):
-                    if(prev_wink==None):
-                        prev_wink=eye_which_winked
-
-
-                    if (eye_which_winked == Direction.LEFT):
-                        if(prev_wink==eye_which_winked):
-                            wink_counter+=1
-                        else:
-                            wink_counter=0
-
-                        if(wink_counter>constants.FPS):
-
-                            cv2.putText(self.frame, 'Left Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
-                                        thickness=3,
-                                        fontScale=1)
-                            wink_counter=0
-
-                    elif (eye_which_winked == Direction.RIGHT):
-                        if(prev_wink==eye_which_winked):
-                            wink_counter+=1
-                        else:
-                            wink_counter=0
-
-                        if ( wink_counter> constants.FPS):
-                            cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
-                                        thickness=3,
-                                        fontScale=1)
-                            blinking_counter = 0
-                            wink_counter=0
-                            if(len(self.text)>0):
-                                is_in_autocomplete_window=True
-                            # if(self.keyboard_contents == constants.RIGHT_LETTERS):
-                            #     self.gaze_direction = Direction.LEFT
-                            #     self.keyboard_contents = constants.LEFT_LETTERS
-                            #
-                            # else:
-                            #     self.gaze_direction = Direction.RIGHT
-                            #     self.keyboard_contents = constants.RIGHT_LETTERS
-
-                    prev_wink=eye_which_winked
 
             else:
                 self.show_options()
 
-                if(prev_gaze==None):
-                    prev_gaze=self.gaze_direction
+                if (prev_gaze == None):
+                    prev_gaze = self.gaze_direction
 
                 if (self.gaze_direction == Direction.LEFT):
-                    if(prev_gaze==self.gaze_direction):
-                        gaze_counter+=1
+                    if (prev_gaze == self.gaze_direction):
+                        gaze_counter += 1
                     else:
-                        gaze_counter=0
-                    if(gaze_counter>constants.FPS):
-                        self.keyboard_contents=constants.LEFT_LETTERS
+                        gaze_counter = 0
+                    if (gaze_counter > constants.FPS):
+                        self.keyboard_contents = constants.LEFT_LETTERS
                         self.draw_keyboard_window(highlight_index)
 
-                        is_keyboard_selected=True
+                        is_keyboard_selected = True
                         highlight_index = 0
-                        gaze_counter=0
+                        gaze_counter = 0
 
                 elif (self.gaze_direction == Direction.RIGHT):
-                    if(prev_gaze==self.gaze_direction):
-                        gaze_counter+=1
+                    if (prev_gaze == self.gaze_direction):
+                        gaze_counter += 1
                     else:
-                        gaze_counter=0
+                        gaze_counter = 0
                     if (gaze_counter > constants.FPS):
-                        self.keyboard_contents=constants.RIGHT_LETTERS
+                        self.keyboard_contents = constants.RIGHT_LETTERS
                         self.draw_keyboard_window(highlight_index)
-                        is_keyboard_selected=True
+                        is_keyboard_selected = True
                         highlight_index = 0
-                        gaze_counter=0
+                        gaze_counter = 0
 
-                prev_gaze=self.gaze_direction
+                prev_gaze = self.gaze_direction
 
                 self.get_eye_dimensions(constants.LEFT_EYE_HORIZONTAL_EXTREMES, constants.LEFT_EYE_TOP,
-                                constants.LEFT_EYE_BOTTOM, landmarks)
+                                        constants.LEFT_EYE_BOTTOM, landmarks)
                 self.get_eye_dimensions(constants.RIGHT_EYE_HORIZONTAL_EXTREMES, constants.RIGHT_EYE_TOP,
-                                constants.RIGHT_EYE_BOTTOM, landmarks)
+                                        constants.RIGHT_EYE_BOTTOM, landmarks)
+
+            is_in_autocomplete_window, prev_wink, wink_counter, is_winking = self.check_wink(is_in_autocomplete_window,
+                                                                                             landmarks, prev_wink,
+                                                                                             wink_counter)
 
             cv2.imshow("Frame", self.frame)
             cv2.moveWindow("Frame", 0, 0)
@@ -535,6 +533,7 @@ class Eye():
                 break
         self.capture.release()
         cv2.destroyAllWindows()
+
 
 def main():
     autocomplete.load()
