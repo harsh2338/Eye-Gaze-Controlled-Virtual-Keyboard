@@ -34,6 +34,7 @@ class Eye():
     def init_boards(self):
         self.keyboard = np.zeros((600, 1000, 3), np.uint8)
         self.keyboard.fill(255)
+
         self.whiteboard = np.zeros((300, 1000), np.uint8)
         self.whiteboard.fill(255)
         self.autocomplete_window=np.zeros((1000,400),np.uint8)
@@ -225,7 +226,9 @@ class Eye():
         th = 3
 
         if(is_highlighted):
-            cv2.rectangle(self.autocomplete_window, (x + th, y + th), (x + width - th, y + height - th), (0, 0, 0), th)
+            cv2.rectangle(self.autocomplete_window, (x + 20, y + 20), (x + width - 20, y + height - 20), (0, 100, 100), 20)
+        else:
+            cv2.rectangle(self.autocomplete_window, (x + th, y + th), (x + width - th, y + height - th), (0, 255, 0), th)
 
         font_letter = cv2.FONT_HERSHEY_PLAIN
         font_scale = 3
@@ -238,7 +241,6 @@ class Eye():
         cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
 
     def draw_keyboard_window(self,highlight_index):
-        # self.autocomplete_window.fill(255)
         index=0
         for i in range(0, 600, 200):
             for j in range(0, 1000, 200):
@@ -254,6 +256,8 @@ class Eye():
             for i in range(0, 1000, 100):
                 self.show_autocomplete_contents(self.predicted_words[index], 0, i, highlight_index == index)
                 index += 1
+                if(index>=len(self.predicted_words)):
+                    break
 
     def num_letter(self):
         rows, cols, _ = self.keyboard.shape
@@ -297,10 +301,15 @@ class Eye():
         return frame_counter,highlight_index
 
     def generate_autocomplete_words(self):
+        autocomplete.load()
         words = self.text.split(' ')
         print(words)
         self.predicted_words = []
         if (len(words) > 1):
+
+            while(words[-1]==''):
+                words.pop(-1)
+
             self.prev_word = words[-2]
             cur_word = words[-1]
             self.predicted_words = autocomplete.predict(self.prev_word.lower(), cur_word.lower())
@@ -334,6 +343,13 @@ class Eye():
             self.get_updated_face()
             #Update keyboard
             self.keyboard.fill(255)
+            self.whiteboard.fill(255)
+            if(len(self.text)>0):
+                if(self.text[0]==""):
+                    text_to_display=self.text[1:]
+                else:
+                    text_to_display =self.text
+                cv2.putText(self.whiteboard, text_to_display, (10, 100), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
             self.show_options()
 
             if(len(self.faces)<1):
@@ -348,6 +364,8 @@ class Eye():
             if(is_in_autocomplete_window):
                 self.keyboard.fill(255)
                 autocomplete_counter+=1
+
+
                 if(autocomplete_counter%constants.FPS==0):
                     autocomplete_cursor_index += 1
                     autocomplete_cursor_index = autocomplete_cursor_index % len(self.predicted_words)
@@ -356,6 +374,76 @@ class Eye():
                     # cv2.imshow("Autocomplete Window", self.autocomplete_window)
                     # cv2.moveWindow("Autocomplete Window", 1510, 0)
                 self.draw_keyboard_window(highlight_index)
+
+                #---
+                key = cv2.waitKey(1)
+                if key == 32:
+                #---
+                # if (self.is_blinking(landmarks)):
+                #     #---
+                #     key = cv2.waitKey(1)
+                #     if key == 32:
+                #     #---
+                    # if(blinking_counter==constants.FPS):
+                    cv2.putText(self.frame, 'Selected', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
+                                thickness=3,
+                                fontScale=1)
+
+                    words=self.text.split(' ')[:-1]
+                    self.text=" ".join(words)+" "+self.predicted_words[autocomplete_cursor_index]+ " "
+                    print(self.text)
+                    frame_counter -= 1
+                    blinking_counter = 0
+                    wink_counter = 0
+                    is_in_autocomplete_window = False
+                    autocomplete_counter = 0
+                    autocomplete_cursor_index = -1
+
+                    # else:
+                    #     cv2.putText(self.frame, 'Eye closed', (20, 250), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0), thickness=3,
+                    #                 fontScale=1)
+                    # blinking_counter+=1
+
+
+                else:
+                    blinking_counter=0
+
+
+                eye_which_winked = self.get_winked_eye_info(landmarks)
+
+                if (eye_which_winked != None):
+                    if (prev_wink == None):
+                        prev_wink = eye_which_winked
+
+                    if (eye_which_winked == Direction.LEFT):
+                        if (prev_wink == eye_which_winked):
+                            wink_counter += 1
+                        else:
+                            wink_counter = 0
+
+                        if (wink_counter > constants.FPS):
+                            cv2.putText(self.frame, 'Left Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
+                                        thickness=3,
+                                        fontScale=1)
+                            wink_counter = 0
+
+                    elif (eye_which_winked == Direction.RIGHT):
+                        if (prev_wink == eye_which_winked):
+                            wink_counter += 1
+                        else:
+                            wink_counter = 0
+
+                        if (wink_counter > constants.FPS):
+                            cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX,
+                                        color=(255, 0, 0),
+                                        thickness=3,
+                                        fontScale=1)
+                            blinking_counter = 0
+                            wink_counter = 0
+                            is_in_autocomplete_window = False
+                            autocomplete_counter=0
+                            autocomplete_cursor_index=-1
+                    prev_wink = eye_which_winked
 
 
             elif(is_keyboard_selected):
@@ -410,11 +498,11 @@ class Eye():
                             self.gaze_direction=KeyboardType.NUMERIC
                             self.keyboard_contents=constants.NUMBERS
                             frame_counter = 1
-                        elif(self.keyboard_contents[highlight_index]==Direction.RIGHT):
+                        elif(self.keyboard_contents[highlight_index]=='Right'):
                             self.gaze_direction = Direction.RIGHT
                             self.keyboard_contents = constants.RIGHT_LETTERS
                             frame_counter = 1
-                        elif(self.keyboard_contents[highlight_index]==Direction.LEFT):
+                        elif(self.keyboard_contents[highlight_index]=='Left'):
                             self.gaze_direction = Direction.LEFT
                             self.keyboard_contents = constants.LEFT_LETTERS
                             frame_counter = 1
@@ -437,7 +525,8 @@ class Eye():
                                         constants.LEFT_EYE_BOTTOM, landmarks)
                 self.get_eye_dimensions(constants.RIGHT_EYE_HORIZONTAL_EXTREMES, constants.RIGHT_EYE_TOP,
                                         constants.RIGHT_EYE_BOTTOM, landmarks)
-                cv2.putText(self.whiteboard, self.text, (10, 100), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
+                # self.whiteboard.fill(255)
+                # cv2.putText(self.whiteboard, self.text, (10, 100), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
 
                 eye_which_winked=self.get_winked_eye_info(landmarks)
 
@@ -533,6 +622,9 @@ class Eye():
             key = cv2.waitKey(1)
             if key == 27:
                 break
+            elif(key == 32):
+                is_in_autocomplete_window = True
+
         self.capture.release()
         cv2.destroyAllWindows()
 
