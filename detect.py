@@ -11,8 +11,6 @@ from playsound import playsound
 import  time
 class Eye():
     def __init__(self):
-
-        
         self.init_detection()
         self.init_boards()
         self.gaze_direction=None
@@ -35,7 +33,6 @@ class Eye():
     def init_boards(self):
         self.keyboard = np.zeros((600, 1000, 3), np.uint8)
         self.keyboard.fill(255)
-
         self.whiteboard = np.zeros((300, 1000), np.uint8)
         self.whiteboard.fill(255)
         self.autocomplete_window=np.zeros((1000,400),np.uint8)
@@ -515,6 +512,9 @@ class Eye():
                         elif(self.keyboard_contents[highlight_index]=='Auto'):
                             if(len(self.text)>0 and len(self.predicted_words)>0):
                                 is_in_autocomplete_window=True
+                        elif(self.keyboard_contents[highlight_index]=='<'):
+                            if(len(self.text)>0):
+                                self.text=self.text[:-1]
                         elif(self.keyboard_contents[highlight_index]=='Space'):
                             self.text+=" "
                         else:
