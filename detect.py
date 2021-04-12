@@ -237,8 +237,11 @@ class Eye():
         width_text, height_text = text_size[0], text_size[1]
         text_x = int((width - width_text) / 2) + x
         text_y = int((height + height_text) / 2) + y
-        cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
+        if(is_highlighted):
 
+            cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (255, 255,255), font_th)
+        else:
+            cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
     def draw_keyboard_window(self,highlight_index):
         index=0
         for i in range(0, 600, 150):
@@ -302,23 +305,27 @@ class Eye():
     def generate_autocomplete_words(self):
         autocomplete.load()
         words = self.text.split(' ')
+        words=[i for i in words if i!=' ']
         print(words)
         self.predicted_words = []
-        if (len(words) > 1):
 
-            while(words[-1]==''):
-                words.pop(-1)
+        try:
+            if (len(words) > 1):
 
-            self.prev_word = words[-2]
-            cur_word = words[-1]
-            self.predicted_words = autocomplete.predict(self.prev_word.lower(), cur_word.lower())
-        else:
-            cur_word = words[-1]
-            self.predicted_words = autocomplete.predict(cur_word.lower(), '')
 
-        self.predicted_words = [i.upper() for i, j in self.predicted_words]
-        self.predicted_words=self.predicted_words[:9]
-        self.predicted_words.insert(0,'<-')
+                self.prev_word = words[-2]
+                cur_word = words[-1]
+                self.predicted_words = autocomplete.predict(self.prev_word.lower(), cur_word.lower())
+            else:
+                cur_word = words[-1]
+                self.predicted_words = autocomplete.predict(cur_word.lower(), '')
+
+            self.predicted_words = [i.upper() for i, j in self.predicted_words]
+            self.predicted_words=self.predicted_words[:9]
+            self.predicted_words.insert(0,'<-')
+        except Exception:
+            print('Unable to predict')
+
 
     def algo(self):
         highlight_index=0
@@ -403,6 +410,26 @@ class Eye():
                 # else:
                 #     blinking_counter=0
 
+
+                auto_key=cv2.waitKey(1)
+                if(auto_key==81):
+                    cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX,
+                                color=(255, 0, 0),
+                                thickness=3,
+                                fontScale=1)
+                    playsound('wink.wav')
+                    if (self.predicted_words[autocomplete_cursor_index] != '<-'):
+
+                        words = self.text.split(' ')[:-1]
+                        self.text = " ".join(words) + " " + self.predicted_words[autocomplete_cursor_index] + " "
+                    blinking_counter = 0
+                    wink_counter = 0
+                    is_in_autocomplete_window = False
+                    is_keyboard_selected = True
+                    autocomplete_counter = 0
+                    autocomplete_cursor_index = -1
+                    prev_gaze = None
+                    self.generate_autocomplete_words()
 
                 eye_which_winked = self.get_winked_eye_info(landmarks)
 
@@ -540,10 +567,12 @@ class Eye():
 
                 k=cv2.waitKey(1)
                 if(k==83):
+                    cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
+                                thickness=3,
+                                fontScale=1)
                     if (len(self.text) > 0 and len(self.predicted_words) > 0):
-                        cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
-                                                thickness=3,
-                                                fontScale=1)
+
+                        playsound('wink.wav')
                         blinking_counter = 0
                         wink_counter=0
                         is_in_autocomplete_window=True
