@@ -7,11 +7,10 @@ from point import Point
 import autocomplete
 from direction import Direction
 from keyboard_type import KeyboardType
-
+from playsound import playsound
+import  time
 class Eye():
     def __init__(self):
-
-        
         self.init_detection()
         self.init_boards()
         self.gaze_direction=None
@@ -34,7 +33,6 @@ class Eye():
     def init_boards(self):
         self.keyboard = np.zeros((600, 1000, 3), np.uint8)
         self.keyboard.fill(255)
-
         self.whiteboard = np.zeros((300, 1000), np.uint8)
         self.whiteboard.fill(255)
         self.autocomplete_window=np.zeros((1000,400),np.uint8)
@@ -146,11 +144,6 @@ class Eye():
         left_white_count,left_thresh_eye= self.extract_eye_for_wink(left_eye_region)
         right_white_count,right_thresh_eye= self.extract_eye_for_wink(right_eye_region)
 
-
-        # cv2.imshow(Direction.LEFT, left_thresh_eye)
-        # cv2.imshow(Direction.RIGHT, right_thresh_eye)
-
-        # print("\t\t\t\t\t\t\t\t\t\t",left_white_count,right_white_count,right_white_count/left_white_count)
         if(left_white_count<10 and right_white_count>10):
             cv2.putText(self.frame, 'Right Wink', (20, 180), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0), thickness=3,
                         fontScale=1)
@@ -200,7 +193,8 @@ class Eye():
 
 
     def show_keyboard_contents(self,text, x, y,is_highlighted):
-        width = height = 200
+        width =200
+        height = 150
         th = 3
 
         if(is_highlighted):
@@ -238,11 +232,14 @@ class Eye():
         width_text, height_text = text_size[0], text_size[1]
         text_x = int((width - width_text) / 2) + x
         text_y = int((height + height_text) / 2) + y
-        cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
+        if(is_highlighted):
 
+            cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (255, 255,255), font_th)
+        else:
+            cv2.putText(self.autocomplete_window, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), font_th)
     def draw_keyboard_window(self,highlight_index):
         index=0
-        for i in range(0, 600, 200):
+        for i in range(0, 600, 150):
             for j in range(0, 1000, 200):
                 self.show_keyboard_contents(self.keyboard_contents[index], j, i, highlight_index == index)
                 index += 1
@@ -303,20 +300,26 @@ class Eye():
     def generate_autocomplete_words(self):
         autocomplete.load()
         words = self.text.split(' ')
+        words=[i for i in words if i!=' ']
         print(words)
         self.predicted_words = []
-        if (len(words) > 1):
 
-            while(words[-1]==''):
-                words.pop(-1)
+        try:
+            if (len(words) > 1):
 
-            self.prev_word = words[-2]
-            cur_word = words[-1]
-            self.predicted_words = autocomplete.predict(self.prev_word.lower(), cur_word.lower())
-        else:
-            cur_word = words[-1]
-            self.predicted_words = autocomplete.predict(cur_word.lower(), '')
-        self.predicted_words = [i.upper() for i, j in self.predicted_words]
+
+                self.prev_word = words[-2]
+                cur_word = words[-1]
+                self.predicted_words = autocomplete.predict(self.prev_word.lower(), cur_word.lower())
+            else:
+                cur_word = words[-1]
+                self.predicted_words = autocomplete.predict(cur_word.lower(), '')
+
+            self.predicted_words = [i.upper() for i, j in self.predicted_words]
+            self.predicted_words=self.predicted_words[:9]
+            self.predicted_words.insert(0,'<-')
+        except Exception:
+            print('Unable to predict')
 
 
     def algo(self):
@@ -344,18 +347,20 @@ class Eye():
             #Update keyboard
             self.keyboard.fill(255)
             self.whiteboard.fill(255)
+
             if(len(self.text)>0):
                 if(self.text[0]==""):
                     text_to_display=self.text[1:]
                 else:
                     text_to_display =self.text
                 cv2.putText(self.whiteboard, text_to_display, (10, 100), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
+
             self.show_options()
 
             if(len(self.faces)<1):
                 continue
-            face = self.faces[0]
 
+            face = self.faces[0]
             landmarks = self.predictor(self.gray_img, face)
             self.gaze_direction = self.get_gaze_direction(landmarks)
             self.draw_autocomplete_window(-1)
@@ -365,49 +370,35 @@ class Eye():
                 self.keyboard.fill(255)
                 autocomplete_counter+=1
 
-
                 if(autocomplete_counter%constants.FPS==0):
                     autocomplete_cursor_index += 1
+
                     autocomplete_cursor_index = autocomplete_cursor_index % len(self.predicted_words)
                     autocomplete_counter = 0
                     self.draw_autocomplete_window(autocomplete_cursor_index)
-                    # cv2.imshow("Autocomplete Window", self.autocomplete_window)
-                    # cv2.moveWindow("Autocomplete Window", 1510, 0)
+
                 self.draw_keyboard_window(highlight_index)
 
-                #---
-                key = cv2.waitKey(1)
-                if key == 32:
-                #---
-                # if (self.is_blinking(landmarks)):
-                #     #---
-                #     key = cv2.waitKey(1)
-                #     if key == 32:
-                #     #---
-                    # if(blinking_counter==constants.FPS):
-                    cv2.putText(self.frame, 'Selected', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
-                                thickness=3,
-                                fontScale=1)
-
-                    words=self.text.split(' ')[:-1]
-                    self.text=" ".join(words)+" "+self.predicted_words[autocomplete_cursor_index]+ " "
-                    print(self.text)
-                    frame_counter -= 1
-                    blinking_counter = 0
-                    wink_counter = 0
-                    is_in_autocomplete_window = False
-                    autocomplete_counter = 0
-                    autocomplete_cursor_index = -1
-
-                    # else:
-                    #     cv2.putText(self.frame, 'Eye closed', (20, 250), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0), thickness=3,
-                    #                 fontScale=1)
-                    # blinking_counter+=1
-
-
-                else:
-                    blinking_counter=0
-
+                ##For testing
+                # auto_key=cv2.waitKey(1)
+                # if(auto_key==81):
+                #     cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX,
+                #                 color=(255, 0, 0),
+                #                 thickness=3,
+                #                 fontScale=1)
+                #     playsound('wink.wav')
+                #     if (self.predicted_words[autocomplete_cursor_index] != '<-'):
+                #
+                #         words = self.text.split(' ')[:-1]
+                #         self.text = " ".join(words) + " " + self.predicted_words[autocomplete_cursor_index] + " "
+                #     blinking_counter = 0
+                #     wink_counter = 0
+                #     is_in_autocomplete_window = False
+                #     is_keyboard_selected = True
+                #     autocomplete_counter = 0
+                #     autocomplete_cursor_index = -1
+                #     prev_gaze = None
+                #     self.generate_autocomplete_words()
 
                 eye_which_winked = self.get_winked_eye_info(landmarks)
 
@@ -415,34 +406,42 @@ class Eye():
                     if (prev_wink == None):
                         prev_wink = eye_which_winked
 
-                    if (eye_which_winked == Direction.LEFT):
+                    # if (eye_which_winked == Direction.LEFT):
+                    #     if (prev_wink == eye_which_winked):
+                    #         wink_counter += 1
+                    #     else:
+                    #         wink_counter = 0
+                    #
+                    #     if (wink_counter > constants.FPS):
+                    #         cv2.putText(self.frame, 'Left Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
+                    #                     thickness=3,
+                    #                     fontScale=1)
+                    #         wink_counter = 0
+                    #
+                    if (eye_which_winked == Direction.RIGHT):
+                        cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX,
+                                    color=(255, 0, 0),
+                                    thickness=3,
+                                    fontScale=1)
+
                         if (prev_wink == eye_which_winked):
                             wink_counter += 1
                         else:
                             wink_counter = 0
 
                         if (wink_counter > constants.FPS):
-                            cv2.putText(self.frame, 'Left Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
-                                        thickness=3,
-                                        fontScale=1)
-                            wink_counter = 0
-
-                    elif (eye_which_winked == Direction.RIGHT):
-                        if (prev_wink == eye_which_winked):
-                            wink_counter += 1
-                        else:
-                            wink_counter = 0
-
-                        if (wink_counter > constants.FPS):
-                            cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX,
-                                        color=(255, 0, 0),
-                                        thickness=3,
-                                        fontScale=1)
+                            playsound('wink.wav')
+                            if(self.predicted_words[autocomplete_cursor_index]!='<-'):
+                                words = self.text.split(' ')[:-1]
+                                self.text=" ".join(words)+" "+self.predicted_words[autocomplete_cursor_index]+ " "
                             blinking_counter = 0
                             wink_counter = 0
                             is_in_autocomplete_window = False
+                            is_keyboard_selected=True
                             autocomplete_counter=0
                             autocomplete_cursor_index=-1
+                            prev_gaze=None
+                            self.generate_autocomplete_words()
                     prev_wink = eye_which_winked
 
 
@@ -475,7 +474,6 @@ class Eye():
                         gaze_counter+=1
                     else:
                         gaze_counter=0
-                    # gaze_counter += 1
                     if (gaze_counter > constants.FPS):
                         cv2.putText(self.frame, "Right", (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
                                     thickness=3,
@@ -489,8 +487,9 @@ class Eye():
 
 
                 if (self.is_blinking(landmarks)):
-
+                    # time.sleep(2)
                     if(blinking_counter==constants.FPS):
+                        playsound('sound.wav')
                         cv2.putText(self.frame, 'Selected', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(0, 255, 0),
                                     thickness=3,
                                     fontScale=1)
@@ -506,18 +505,27 @@ class Eye():
                             self.gaze_direction = Direction.LEFT
                             self.keyboard_contents = constants.LEFT_LETTERS
                             frame_counter = 1
+                        elif(self.keyboard_contents[highlight_index]=='Auto'):
+                            if(len(self.text)>0 and len(self.predicted_words)>0):
+                                is_in_autocomplete_window=True
+                        elif(self.keyboard_contents[highlight_index]=='<'):
+                            if(len(self.text)>0):
+                                self.text=self.text[:-1]
+                        elif(self.keyboard_contents[highlight_index]=='Space'):
+                            self.text+=" "
                         else:
                             self.text+=self.keyboard_contents[highlight_index]
                             frame_counter = 1
-                        # self.update_autocomplete_window()
                         self.generate_autocomplete_words()
                         highlight_index = 0
                         cursor_direction=Direction.LEFT_TO_RIGHT
+                        time.sleep(1)
                     else:
                         cv2.putText(self.frame, 'Eye closed', (20, 250), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0), thickness=3,
                                     fontScale=1)
                     blinking_counter+=1
                     frame_counter-=1
+
                 else:
                     blinking_counter=0
 
@@ -525,17 +533,29 @@ class Eye():
                                         constants.LEFT_EYE_BOTTOM, landmarks)
                 self.get_eye_dimensions(constants.RIGHT_EYE_HORIZONTAL_EXTREMES, constants.RIGHT_EYE_TOP,
                                         constants.RIGHT_EYE_BOTTOM, landmarks)
-                # self.whiteboard.fill(255)
-                # cv2.putText(self.whiteboard, self.text, (10, 100), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
 
+                #For testing
+                # k=cv2.waitKey(1)
+                # if(k==83):
+                #     cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
+                #                 thickness=3,
+                #                 fontScale=1)
+                #     if (len(self.text) > 0 and len(self.predicted_words) > 0):
+                #
+                #         playsound('wink.wav')
+                #         blinking_counter = 0
+                #         wink_counter=0
+                #         is_in_autocomplete_window=True
                 eye_which_winked=self.get_winked_eye_info(landmarks)
 
                 if(eye_which_winked != None):
+
                     if(prev_wink==None):
                         prev_wink=eye_which_winked
 
 
                     if (eye_which_winked == Direction.LEFT):
+                        #
                         if(prev_wink==eye_which_winked):
                             wink_counter+=1
                         else:
@@ -555,21 +575,14 @@ class Eye():
                             wink_counter=0
 
                         if ( wink_counter> constants.FPS):
+                            playsound('wink.wav')
                             cv2.putText(self.frame, 'Right Wink', (20, 150), cv2.FONT_HERSHEY_COMPLEX, color=(255, 0, 0),
                                         thickness=3,
                                         fontScale=1)
                             blinking_counter = 0
                             wink_counter=0
-                            if(len(self.text)>0):
+                            if(len(self.text)>0 and len(self.predicted_words)>0):
                                 is_in_autocomplete_window=True
-                            # if(self.keyboard_contents == constants.RIGHT_LETTERS):
-                            #     self.gaze_direction = Direction.LEFT
-                            #     self.keyboard_contents = constants.LEFT_LETTERS
-                            #
-                            # else:
-                            #     self.gaze_direction = Direction.RIGHT
-                            #     self.keyboard_contents = constants.RIGHT_LETTERS
-
                     prev_wink=eye_which_winked
 
             else:
@@ -586,6 +599,7 @@ class Eye():
                     if(gaze_counter>constants.FPS):
                         self.keyboard_contents=constants.LEFT_LETTERS
                         self.draw_keyboard_window(highlight_index)
+                        playsound('sound.wav')
 
                         is_keyboard_selected=True
                         highlight_index = 0
@@ -597,6 +611,7 @@ class Eye():
                     else:
                         gaze_counter=0
                     if (gaze_counter > constants.FPS):
+                        playsound('sound.wav')
                         self.keyboard_contents=constants.RIGHT_LETTERS
                         self.draw_keyboard_window(highlight_index)
                         is_keyboard_selected=True
