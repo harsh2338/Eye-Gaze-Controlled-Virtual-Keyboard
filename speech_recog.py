@@ -18,7 +18,7 @@ for i, microphone_name in enumerate(mic_list):
 def recog(source):
    r.adjust_for_ambient_noise(source)
    print("Say Something...")
-   audio = r.listen(source,timeout=5,phrase_time_limit=5)
+   audio = r.listen(source,timeout=3,phrase_time_limit=3)
 
    try:
        text = r.recognize_google(audio)
@@ -46,6 +46,8 @@ while(True):
        cv2.putText(whiteboard, t, (10, y), cv2.FONT_HERSHEY_PLAIN, 4, 0, 3)
        y+=60
    cv2.imshow("Board", whiteboard)
+   cv2.moveWindow("Board", 0, 700)
+
    key = cv2.waitKey(1)
    if(key==27):
        break
@@ -58,7 +60,6 @@ while(True):
    elif(not check_done):
        text=text[1:]
        check_done=True
-
    key = cv2.waitKey(1)
    if(key==27):
        break
