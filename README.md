@@ -1,4 +1,4 @@
-# Contactless password entering interface
+# Eye-Gaze-Controlled-Virtual-Keyboard
 
 ### Tech Stack
 
