@@ -15,7 +15,7 @@ people and computers. Eye-tracking technology can be used in many places as secu
 blessings for those people who have completely lost control of their limbs.
 
 Example
-![](http://url/to/img.png)
+![](https://github.com/harsh2338/Eye-Gaze-Controlled-Virtual-Keyboard/blob/main/images/autocomplete.png)
 
 ### Libraries
 
